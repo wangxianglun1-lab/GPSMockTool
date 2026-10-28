@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.drawerlayout.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawer_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/my_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="#1A1B26"
+            android:elevation="6dp"
+            app:title="幻迹 GPS"
+            app:titleTextColor="#FFFFFF"/>
+
+        <com.baidu.mapapi.map.MapView
+            android:id="@+id/bmapView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/my_toolbar"
+            android:clickable="true" />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/btn_my_location"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_alignParentEnd="true"
+            android:layout_below="@id/my_toolbar"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="12dp"
+            app:cardBackgroundColor="#FFFFFF"
+            app:cardCornerRadius="4dp"
+            app:cardElevation="2dp"
+            android:alpha="0.75"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:src="@android:drawable/ic_menu_mylocation"
+                app:tint="#555555" />
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/bottom_control_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_margin="16dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="6dp"
+            android:alpha="0.8"
+            app:cardBackgroundColor="#FFFFFF">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:id="@+id/tv_selected_location"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="当前目标：未锁定 (请在地图选点)"
+                    android:textColor="#222222"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:gravity="center_horizontal"
+                    android:layout_marginBottom="16dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <Button
+                        android:id="@+id/btn_favorite"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="收藏当前坐标"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        android:backgroundTint="#FF9800"
+                        android:drawableStart="@android:drawable/btn_star_big_on"
+                        android:drawablePadding="8dp"
+                        android:paddingStart="16dp"
+                        android:stateListAnimator="@null" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btn_smart_toggle"
+                    android:layout_width="match_parent"
+                    android:layout_height="55dp"
+                    android:text="启动虚拟定位引擎"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="#4CAF50"
+                    android:drawableStart="@android:drawable/ic_menu_send"
+                    android:drawablePadding="12dp"
+                    android:paddingStart="20dp"
+                    android:elevation="4dp"
+                    android:stateListAnimator="@null" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_width="280dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="#FFFFFF"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#1A1B26"
+            android:paddingTop="50dp"
+            android:paddingBottom="20dp"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:text="幻迹 GPS\n功能设置"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/menu_view_favorites"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="我的收藏夹"
+            android:drawableStart="@drawable/ic_menu_folder"
+            android:drawablePadding="16dp"
+            app:drawableTint="#757575"
+            android:padding="16dp"
+            android:textSize="16sp"
+            android:textColor="#333333"/>
+
+        <TextView
+            android:id="@+id/menu_history"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="历史记录"
+            android:drawableStart="@drawable/ic_menu_history"
+            android:drawablePadding="16dp"
+            app:drawableTint="#757575"
+            android:padding="16dp"
+            android:textSize="16sp"
+            android:textColor="#333333"/>
+
+        <TextView
+            android:id="@+id/menu_route"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="模拟轨迹"
+            android:drawableStart="@drawable/ic_menu_track"
+            android:drawablePadding="16dp"
+            app:drawableTint="#757575"
+            android:padding="16dp"
+            android:textSize="16sp"
+            android:textColor="#333333"/>
+
+        <TextView
+            android:id="@+id/menu_settings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="参数设置"
+            android:drawableStart="@drawable/ic_menu_settings"
+            android:drawablePadding="16dp"
+            app:drawableTint="#757575"
+            android:padding="16dp"
+            android:textSize="16sp"
+            android:textColor="#333333"/>
+
+        <TextView
+            android:id="@+id/btn_switch_map"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="切到卫星地图"
+            android:drawableStart="@drawable/ic_switch_map_sat"
+            android:drawablePadding="16dp"
+            android:textSize="16sp"
+            android:textColor="#555555"
+            android:background="?android:attr/selectableItemBackground"/>
+
+        <TextView
+            android:id="@+id/btn_help_guide"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="使用帮助"
+            android:drawableStart="@drawable/ic_help_pro"
+            android:drawablePadding="16dp"
+            android:textSize="16sp"
+            android:textColor="#555555"
+            android:background="?android:attr/selectableItemBackground"/>
+
+        <TextView
+            android:id="@+id/menu_about"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="关于软件"
+            android:drawableStart="@drawable/ic_menu_about"
+            android:drawablePadding="16dp"
+            app:drawableTint="#757575"
+            android:padding="16dp"
+            android:textSize="16sp"
+            android:textColor="#333333"/>
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#E0E0E0"
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="20dp"
+            android:gravity="center_vertical"
+            android:background="?android:attr/selectableItemBackground">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="开启 Pro 模式"
+                android:drawableStart="@drawable/ic_pro_fire"
+                android:drawablePadding="12dp"
+                android:textColor="#FF9800"
+                android:textStyle="bold" />
+
+            <Switch
+                android:id="@+id/switch_pro_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:theme="@style/Theme.AppCompat.Light"/>
+        </LinearLayout>
+    </LinearLayout>
+</androidx.drawerlayout.widget.DrawerLayout>
