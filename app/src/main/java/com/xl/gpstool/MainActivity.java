@@ -110,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
         com.baidu.mapapi.SDKInitializer.initialize(this.getApplicationContext());
 
         setContentView(R.layout.activity_main);
+        checkAppUpdate();
         btnSmartToggle = findViewById(R.id.btn_smart_toggle);
         btnFavorite = findViewById(R.id.btn_favorite);
         btnViewFavorites = findViewById(R.id.menu_view_favorites);
@@ -127,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
                     // 🛡️ 1. 探针：必须先检查底层电缆是否插好！(防崩溃核心)
                     if (!rikka.shizuku.Shizuku.pingBinder()) {
                         android.widget.Toast.makeText(MainActivity.this,
-                                "🚨 未连上 Shizuku！\n请先确保 Shizuku 正在运行，然后【彻底划掉后台关闭本软件】，重新打开即可连上！",
+                                "未连上 Shizuku！\n请先确保 Shizuku 正在运行，然后【彻底划掉后台关闭本软件】，重新打开即可连上！",
                                 android.widget.Toast.LENGTH_LONG).show();
                         buttonView.setChecked(false);
                         return;
@@ -136,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
                     // 2. 叩门：检查是否给了权限
                     if (rikka.shizuku.Shizuku.checkSelfPermission() != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                         rikka.shizuku.Shizuku.requestPermission(0);
-                        android.widget.Toast.makeText(MainActivity.this, "👉 请在弹出的窗口点击【始终允许】，然后再次打开本开关！", android.widget.Toast.LENGTH_LONG).show();
+                        android.widget.Toast.makeText(MainActivity.this, "请在弹出的窗口点击【始终允许】，然后再次打开本开关！", android.widget.Toast.LENGTH_LONG).show();
                         buttonView.setChecked(false);
                         return;
                     }
@@ -147,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
 
                 } catch (Exception e) {
                     android.widget.Toast.makeText(MainActivity.this, "底层环境异常: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
-                    android.util.Log.e("XL_DEBUG", "💥 Shizuku 连接失败：", e);
+                    android.util.Log.e("XL_DEBUG", "Shizuku 连接失败：", e);
                     buttonView.setChecked(false);
                     isProMode = false;
                 }
@@ -465,17 +466,42 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     // 轨道 B：常规模式
                     if (!isMockLocationEnabled()) {
-                        new android.app.AlertDialog.Builder(MainActivity.this)
-                                .setTitle("权限提示")
-                                .setMessage("常规模式需要系统权限授权。\n\n请前往“设置 > 开发者选项 > 选择模拟位置信息应用”中，选择本应用。")
+// 1. 加载我们刚画的漂亮权限提示 XML 布局
+                        android.view.View permissionView = android.view.LayoutInflater.from(MainActivity.this).inflate(R.layout.dialog_permission, null);
+
+// 2. 找到布局里的两个按钮
+                        android.widget.Button btnCancel = permissionView.findViewById(R.id.btn_permission_cancel);
+                        android.widget.Button btnSetting = permissionView.findViewById(R.id.btn_permission_setting);
+
+// 3. 创建并显示这个自定义弹窗，背景变透明去掉白框
+                        android.app.AlertDialog permissionDialog = new android.app.AlertDialog.Builder(MainActivity.this)
+                                .setView(permissionView)
                                 .setCancelable(false)
-                                .setNegativeButton("取消", null)
-                                .setPositiveButton("去设置", (dialog, which) -> startActivity(new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)))
-                                .show();
+                                .create();
+
+                        if (permissionDialog.getWindow() != null) {
+                            permissionDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+                        }
+
+// 4. 设置按钮点击事件
+                        btnCancel.setOnClickListener(v1 -> permissionDialog.dismiss());
+
+                        btnSetting.setOnClickListener(v2 -> {
+                            permissionDialog.dismiss();
+                            startActivity(new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS));
+                        });
+
+                        permissionDialog.show();
                         return;
                     }
                 }
-
+// 🛡️ 检查悬浮窗权限（确保真机改高德/学习通不被后台冻结）
+                android.content.SharedPreferences prefs = getSharedPreferences("MockSettings", MODE_PRIVATE);
+                if (prefs.getBoolean("enable_float", true) && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(MainActivity.this)) {
+                    android.widget.Toast.makeText(MainActivity.this, "请先授予【悬浮窗权限】，确保切换到学习通/高德时定位不掉线！", android.widget.Toast.LENGTH_LONG).show();
+                    startActivity(new android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:" + getPackageName())));
+                    return;
+                }
                 // 🚀 启动引擎
                 isMocking = true;
                 android.content.Intent serviceIntent = new android.content.Intent(MainActivity.this, MockService.class);
@@ -768,10 +794,10 @@ public class MainActivity extends AppCompatActivity {
                     deviceRealLat = lat;
                     deviceRealLon = lon;
                 }
-
                 android.location.LocationListener listener = new android.location.LocationListener() {
                     @Override
                     public void onLocationChanged(android.location.Location location) {
+                        if (isMocking) return; // 正在模拟定位时，禁止覆盖真实物理坐标
                         if (location != null && mBaiduMap != null) {
                             double realLat = location.getLatitude();
                             double realLon = location.getLongitude();
@@ -800,5 +826,109 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    // ==========================================
+    // 🚀 自动版本更新检测模块 (对接 GitHub Releases)
+    // ==========================================
+    private void checkAppUpdate() {
+        new Thread(() -> {
+            try {
+                // 1. 请求你自己的 GitHub 仓库的最新发布接口
+                java.net.URL url = new java.net.URL("https://api.github.com/repos/wangxianglun1-lab/GPSMockTool/releases/latest");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(5000); // 超时时间5秒
+
+                if (conn.getResponseCode() == 200) {
+                    java.io.InputStream is = conn.getInputStream();
+                    java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    reader.close();
+
+                    // 2. 解析 GitHub 返回的 JSON 数据
+                    org.json.JSONObject json = new org.json.JSONObject(sb.toString());
+                    String latestVersionTag = json.getString("tag_name"); // 获取线上版本号，例如 "v1.1.0"
+                    String releaseNotes = json.getString("body"); // 获取你在网页上写的更新说明
+
+                    // 获取 APK 的直接下载链接
+                    String downloadUrl = json.getJSONArray("assets").getJSONObject(0).getString("browser_download_url");
+
+                    // 3. 获取手机当前安装的版本号
+                    android.content.pm.PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+                    String currentVersion = pInfo.versionName;
+
+                    // 统一格式进行比对 (去掉v，直接比对 1.0.0 和 1.1.0)
+                    String onlineVer = latestVersionTag.replace("v", "").trim();
+                    String localVer = currentVersion.replace("v", "").trim();
+
+                    if (isVersionNewer(onlineVer, localVer)) {
+                        runOnUiThread(() -> showUpdateDialog(latestVersionTag, releaseNotes, downloadUrl));
+                    }
+                }
+            } catch (Exception e) {
+                // 网络不好或获取失败时静默处理，不打扰用户
+                e.printStackTrace();
+            }
+        }).start();
+    }
+    private boolean isVersionNewer(String onlineVer, String localVer) {
+        try {
+            // 按点号拆分版本号 (例如 "3.6.7" 拆成 [3, 6, 7])
+            String[] onlineParts = onlineVer.split("\\.");
+            String[] localParts = localVer.split("\\.");
+            int length = Math.max(onlineParts.length, localParts.length);
+
+            for (int i = 0; i < length; i++) {
+                int onlinePart = i < onlineParts.length ? Integer.parseInt(onlineParts[i]) : 0;
+                int localPart = i < localParts.length ? Integer.parseInt(localParts[i]) : 0;
+
+                if (onlinePart > localPart) return true;  // 线上版本更大，确实有新版
+                if (onlinePart < localPart) return false; // 本地版本更大（你在测试未发布的新版），不弹窗
+            }
+            return false; // 版本完全一致，不弹窗
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    private void showUpdateDialog(String newVersion, String notes, String downloadUrl) {
+        // 1. 加载我们刚画的漂亮 XML 布局
+        android.view.View dialogView = android.view.LayoutInflater.from(MainActivity.this).inflate(R.layout.dialog_update, null);
+
+        // 2. 找到布局里的文字和按钮控件
+        android.widget.TextView tvTitle = dialogView.findViewById(R.id.tv_update_title);
+        android.widget.TextView tvContent = dialogView.findViewById(R.id.tv_update_content);
+        android.widget.Button btnCancel = dialogView.findViewById(R.id.btn_update_cancel);
+        android.widget.Button btnUpdateNow = dialogView.findViewById(R.id.btn_update_now);
+
+        // 3. 把 GitHub 抓取到的版本号和日志填进去
+        tvTitle.setText("发现新版本 " + newVersion);
+        tvContent.setText(notes);
+
+        // 4. 创建并显示这个自定义弹窗，把背景变透明（去掉原生的白框）
+        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(MainActivity.this)
+                .setView(dialogView)
+                .setCancelable(false) // 强制必须点按钮，不能点外面取消
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        // 5. 设置两个漂亮按钮的点击事件
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnUpdateNow.setOnClickListener(v -> {
+            // 调用手机系统自带浏览器直接下载新版 APK
+            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+            intent.setData(android.net.Uri.parse(downloadUrl));
+            startActivity(intent);
+        });
+
+        // 搞定，展示！
+        dialog.show();
     }
 }
